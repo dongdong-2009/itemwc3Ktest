@@ -83,5 +83,6 @@
 //-user
 #include  "tiza_sys.h"
 #include  "tiza_rs232.h"
+#include  "tiza_can.h"
 
 #endif

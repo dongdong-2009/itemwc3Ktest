@@ -31,7 +31,7 @@
 //1,增加了对UCOSII的支持
 ////////////////////////////////////////////////////////////////////////////////// 	  
  
-
+extern void RS232SendData(unsigned char );
 //////////////////////////////////////////////////////////////////
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
 #if 1
@@ -51,8 +51,10 @@ _sys_exit(int x)
 //重定义fputc函数 
 int fputc(int ch, FILE *f)
 { 	
-	while((USART1->SR&0X40)==0);//循环发送,直到发送完毕  
-	USART1->DR = (u8) ch;
+	
+	RS232SendData(ch);
+	//while((USART1->SR&0X40)==0);//循环发送,直到发送完毕  
+	//USART1->DR = (u8) ch;
 	//-while(USART_GetFlagStatus(USART1,USART_FLAG_TXE) == RESET);	
 	//-USART_SendData(USART1,ch);
 	//-__NOP();
@@ -69,7 +71,17 @@ int fputc(int ch, FILE *f)
 	return ch;
 }
 #endif
- 
+void RS232RecData(unsigned char *Dat,unsigned char Len)
+{
 
+}	
+void S_DEBUGF(unsigned char *Dat)
+{
+	while(*Dat != 0)
+	{
+		RS232SendData(*Dat);
+		Dat ++;
+	}
+}
 
 

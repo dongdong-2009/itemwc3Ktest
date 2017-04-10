@@ -308,7 +308,7 @@
               </OCR_RVCT3>
               <OCR_RVCT4>
                 <Type>1</Type>
-                <StartAddress>0x8000000</StartAddress>
+                <StartAddress>0x8020000</StartAddress>
                 <Size>0x100000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
@@ -413,24 +413,11 @@
               <FilePath>.\main.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f4xx_it.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\stm32f4xx_it.c</FilePath>
-            </File>
-            <File>
-              <FileName>system_stm32f4xx.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\system_stm32f4xx.c</FilePath>
-            </File>
-            <File>
-              <FileName>led.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\LED\led.c</FilePath>
+              <FileName>startup_stm32f40_41xxx.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>..\CORE\startup_stm32f40_41xxx.s</FilePath>
             </File>
           </Files>
-        </Group>
-        <Group>
-          <GroupName>HARDWARE</GroupName>
         </Group>
         <Group>
           <GroupName>SYSTEM</GroupName>
@@ -443,32 +430,12 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>CORE</GroupName>
-          <Files>
-            <File>
-              <FileName>startup_stm32f40_41xxx.s</FileName>
-              <FileType>2</FileType>
-              <FilePath>..\CORE\startup_stm32f40_41xxx.s</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
           <GroupName>FWLIB</GroupName>
           <Files>
             <File>
-              <FileName>sss.lib</FileName>
+              <FileName>tiza_lib.lib</FileName>
               <FileType>4</FileType>
-              <FilePath>.\sss.lib</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>README</GroupName>
-          <Files>
-            <File>
-              <FileName>readme.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\readme.txt</FilePath>
+              <FilePath>.\tiza_lib.lib</FilePath>
             </File>
           </Files>
         </Group>

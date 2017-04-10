@@ -1,9 +1,72 @@
 #include "includes.h"
 
+
+
+
+
+typedef struct{
+	uint32 id;
+	uint8  data[8]; 
+	uint8  flag;
+}CAN_MSG;
+#define STANDARD_CAN	1
+#define EXPAND_CAN 		2
+CAN_MSG Can1RxFifo;
+CAN_MSG Can2RxFifo;
+
+
+//#define S_DEBUGF printf
+
+
+
 //-初始化系统实现打印函数
 void delay_num(uint8 Num,uint32 Len);
 
 
+void DealDebugSend(){
+	 
+ }
+uint8 STFIFOUsed(CAN_MSG* canmsg){
+	if(canmsg->flag){
+		canmsg->flag = 0;
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
+void ReadSTFIFO(CAN_MSG* source, CAN_MSG* target){
+	target = source;
+} 
+
+/**weichai**/
+void CanRecMessage(uint8 port,uint32 CanId,uint8* Dat)
+{
+	int i;
+	
+	printf("can port= %u can id = 0x%08X\r\n", port, CanId);
+	printf("recv data: ");
+	if(port == 1){//CAN1
+		Can1RxFifo.id = 1;
+		for(i=0; i < 8; i++){
+			Can1RxFifo.data[i] = (uint8)*Dat;
+			printf("%02X", (uint8)*Dat);
+			Dat++;
+		}
+		printf("\r\n");
+		Can1RxFifo.flag = 1;
+	}
+	else if(port == 2){//CAN2
+		Can2RxFifo.id = 1;
+		for(i=0; i < 8; i++){
+			Can2RxFifo.data[i] = (uint8)*Dat;
+			printf("%02X", (uint8)*Dat);
+			Dat++;
+		}
+		printf("\r\n");
+		Can2RxFifo.flag = 1;	
+	}
+}
 
 
 //RS232部分
@@ -101,26 +164,862 @@ void delay_init(u8 SYSCLK)
 	fac_ms=(u16)fac_us*1000;				//非OS下,代表每个ms需要的systick时钟数   
 #endif
 }		
+void TimerFunc(void)
+{
 
+}
+void SysTick_Handler(void)
+{
+
+}
 int main(void)
 {
- 
+ uint8 TestData[200],res;
+	CAN_MSG TestCanmsg;
+	
 	//-delay_init(168);		  //初始化延时函数
 	//-LED_Init();		        //初始化LED端口
 	InitSystem();
 	//-delay_init(168);  	//时钟初始化
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//中断分组配置
+	//NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//中断分组配置
 	
   /**上面完成了CPU时钟初始化，下面开始外设初始化**/	
-	RS232OpenPort(115200);
+	
 	
 	IoInit();         //IO初始化	
+	RS232OpenPort(115200);
+	SysTickConfig(1000);
+	OpenTimer(100);
+	//delay_ms(100);
+	//printf("##### Device start... #####\r\n");
 	
-	delay_ms(100);
-	printf("##### Device start... #####\r\n");
+	#if 0			//TEST_CAN > 0
+	
+	
+			printf("\r\n测试CAN模块:");
+			DealDebugSend();
+		//	InitSTFIFO(&Can1RxFifo,CanRx1Msg,sizeof(CAN_MSG),32);
+		//	InitSTFIFO(&Can2RxFifo,CanRx2Msg,sizeof(CAN_MSG),32);
+			printf("\r\n------1M波特率,扩展帧:");
+			if(CanOpenPort(1,1000)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,1000)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x18DA00F1,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F1);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x18000024,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x18000024);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			printf("\r\n------1M波特率,标准帧:");
+			if(CanOpenPort(1,1000)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,1000)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x7e0,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x7e0);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x7e1,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x7e1);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			
+			printf("\r\n------500K波特率,扩展帧:");
+			if(CanOpenPort(1,500)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,500)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x18DA00F2,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F2);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x18000023,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x18000023);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			printf("\r\n------500K波特率,标准帧:");
+			if(CanOpenPort(1,500)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,500)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x7e1,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x7e1);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x7e1,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x7e1);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			
+			printf("\r\n------250K波特率,扩展帧:");
+			if(CanOpenPort(1,250)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,250)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x18DA00F3,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F3);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x18000022,EXPAND_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x18000022);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			printf("\r\n------250K波特率,标准帧:");
+			if(CanOpenPort(1,250)==0)
+			{
+				printf("\r\n----CAN端口1打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口1打开失败");
+			}
+			DealDebugSend();
+			if(CanOpenPort(2,250)==0)
+			{
+				printf("\r\n----CAN端口2打开成功");
+			}
+			else
+			{
+				printf("\r\n----CAN端口2打开失败");
+			}
+			DealDebugSend();
+			TestData[0] = 0x02;
+			TestData[1] = 0x10;
+			TestData[2] = 0x61;
+			if(CanSendMessage(1,0x7e0,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道1数据发送成功,ID:0x%x",0x7e0);
+			}
+			else
+			{
+				printf("\r\n----CAN通道1数据发送失败.");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can2RxFifo))
+			{
+				ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN2接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN2接收数据失败");
+			}
+			memset(TestData,0x06,10);
+			if(CanSendMessage(2,0x7e1,STANDARD_CAN,TestData,8) == 0)
+			{
+				printf("\r\n----CAN通道2数据发送成功,ID:0x%x",0x7e1);
+			}
+			else
+			{
+				printf("\r\n----CAN通道2数据发送失败");
+			}
+			DealDebugSend();
+			if(STFIFOUsed(&Can1RxFifo))
+			{
+				ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+				printf("\r\n----CAN1接收到数据,ID:0x%x",TestCanmsg.id);
+			}
+			else
+			{
+				printf("\r\n----CAN1接收数据失败");
+			}
+			printf("\r\nCAN模块测试完成!\n");
+			DealDebugSend();
+		#endif
+		
+		#if 1 > 0
+	S_DEBUGF("\n测试CAN模块:");
+	DealDebugSend();
+	//-PowerSts.WorkSts = NORMAL_WORK;
+	DealDebugSend();
+	//-InitSTFIFO(&Can1RxFifo,CanRx1Msg,sizeof(CAN_MSG),32);
+	//-InitSTFIFO(&Can2RxFifo,CanRx2Msg,sizeof(CAN_MSG),32);
+	S_DEBUGF("\n------1M波特率,扩展帧:");
+	if(CanOpenPort(1,1000)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,1000)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	TestData[0] = 0x02;
+	TestData[1] = 0x10;
+	TestData[2] = 0x61;
+	if(CanSendMessage(1,0x18DA00F1,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F1);
+		S_DEBUGF("\n1----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n1----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x06,10);
+	if(CanSendMessage(2,0x18000024,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x18000024);
+		S_DEBUGF("\n2----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n2----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	S_DEBUGF("\n------1M波特率,标准帧:");
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(1,1000)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,1000)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x11,10);
+	if(CanSendMessage(1,0x7e0,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x7e0);
+		S_DEBUGF("\n3----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n3----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x22,10);
+	if(CanSendMessage(2,0x7e1,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x7e1);
+		S_DEBUGF("\n4----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n4----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	S_DEBUGF("\n------500K波特率,扩展帧:");
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(1,500)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,500)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x33,10);
+	if(CanSendMessage(1,0x18DA00F2,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F2);
+		S_DEBUGF("\n5----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n5----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x44,10);
+	if(CanSendMessage(2,0x18000023,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x18000023);
+		S_DEBUGF("\n6----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n6----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	S_DEBUGF("\n------500K波特率,标准帧:");
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(1,500)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,500)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x55,10);
+	if(CanSendMessage(1,0x7e2,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x7e2);
+		S_DEBUGF("\n7----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n7----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x66,10);
+	if(CanSendMessage(2,0x7e3,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x7e3);
+		S_DEBUGF("\n8----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n8----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	S_DEBUGF("\n------250K波特率,扩展帧:");
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(1,250)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,250)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x77,10);
+	if(CanSendMessage(1,0x18DA00F5,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x18DA00F5);
+		S_DEBUGF("\n9----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n9----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x88,10);
+	if(CanSendMessage(2,0x18000022,EXPAND_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x18000022);
+		S_DEBUGF("\n10----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n10----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	S_DEBUGF("\n------250K波特率,标准帧:");
+	if(CanOpenPort(1,250)==0)
+	{
+		S_DEBUGF("\n----CAN端口1打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口1打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	if(CanOpenPort(2,250)==0)
+	{
+		S_DEBUGF("\n----CAN端口2打开成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN端口2打开失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0x99,10);
+	if(CanSendMessage(1,0x7e6,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道1数据发送成功,ID:0x%x",0x7e6);
+		S_DEBUGF("\n11----CAN通道1数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道1数据发送失败.");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can2RxFifo);
+	S_DEBUGF("\n11----CAN通道2数据条数：%d \n",res);
+	if(STFIFOUsed(&Can2RxFifo))
+	{
+		ReadSTFIFO(&Can2RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN2 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN2接收数据失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	memset(TestData,0xaa,10);
+	if(CanSendMessage(2,0x7e7,STANDARD_CAN,TestData,8) == 0)
+	{
+		//S_DEBUGF("\n----CAN通道2数据发送成功,ID:0x%x",0x7e7);
+		S_DEBUGF("\n12----CAN通道2数据发送成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN通道2数据发送失败");
+	}
+	DealDebugSend();
+	ClearWatchdog();
+	res = STFIFOUsed(&Can1RxFifo);
+	S_DEBUGF("\n12----CAN通道1数据条数：%d \n",res);
+	if(STFIFOUsed(&Can1RxFifo))
+	{
+		ReadSTFIFO(&Can1RxFifo,(void*)&TestCanmsg);
+		//DPrint("\n---CAN1 RECID:0x%x",TestCanmsg.id);
+		//DPrint("---DATA: %h\n",TestCanmsg.Data,8);
+	}
+	else
+	{
+		S_DEBUGF("\n----CAN1接收数据失败");
+	}
+	S_DEBUGF("\nCAN模块测试完成!\n");
+	DealDebugSend();
+	ClearWatchdog();
+#endif
 	
 	while(1)
 	{
+		/*
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
@@ -129,6 +1028,7 @@ int main(void)
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
+		*/
 		printf("\r\nCAN模块测试完成!\n");
 		
 		//-RS232SendData(0x23);
