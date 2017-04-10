@@ -170,7 +170,7 @@ int main(void)
 	//-LED_Init();		        //初始化LED端口
 	InitSystem();
 	//-delay_init(168);  	//时钟初始化
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//中断分组配置
+	//-NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//中断分组配置
 	
   /**上面完成了CPU时钟初始化，下面开始外设初始化**/	
 	RS232OpenPort(115200);
@@ -648,7 +648,7 @@ int main(void)
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
 		printf("\r\nCAN模块测试完成!\n");
-		
+		ClearWatchdog();
 		//-RS232SendData(0x23);
 		//-delay_num(10,65530);
 		//-RS232SendData(0x44);
