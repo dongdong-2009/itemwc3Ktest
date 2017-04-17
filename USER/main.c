@@ -164,7 +164,9 @@ void delay_init(u8 SYSCLK)
 int main(void)
 {
 	uint8 TestData[200],res;
+	uint32 len;
 	CAN_MSG TestCanmsg;
+	NSS_INFO TestNssInfo;
  
 	//-delay_init(168);		  //初始化延时函数
 	//-LED_Init();		        //初始化LED端口
@@ -180,7 +182,7 @@ int main(void)
 	delay_ms(100);
 	printf("##### Device start... #####\r\n");
 	
-	#if 1 > 0
+	#if 0 > 0
 	S_DEBUGF("\n测试CAN模块:");
 	DealDebugSend();
 	//-PowerSts.WorkSts = NORMAL_WORK;
@@ -635,6 +637,155 @@ int main(void)
 	S_DEBUGF("\nCAN模块测试完成!\n");
 	DealDebugSend();
 	ClearWatchdog();
+#endif
+
+#if 0 > 0
+	S_DEBUGF("\n测试GPS北斗:");
+	DealDebugSend();
+	if(NssInit()==0)
+	{
+		S_DEBUGF("\n----GPS北斗初始化成功");
+	}
+	else
+	{
+		S_DEBUGF("\n----GPS北斗初始化失败");
+	}
+	//-PrintRtc();
+	DealDebugSend();
+	while(1)
+	{
+		ClearWatchdog();
+		//-if(TimeDelay == 0)
+		{
+			//-TimeDelay = 10;
+			res = GetCurrentPosition(&TestNssInfo);
+			S_DEBUGF("\n res =%d,TestNssInfo.Status = %d",res,TestNssInfo.Status);
+			DealDebugSend();
+			if((res == 0)&&(TestNssInfo.Status == 0))
+			{
+				S_DEBUGF("\n----GPS北斗定位信息更新完成.");
+				S_DEBUGF("\n经度:%o%o%o%o%o\n;",TestNssInfo.Longitude[0],TestNssInfo.Longitude[1],TestNssInfo.Longitude[2],TestNssInfo.Longitude[3],TestNssInfo.Longitude[4]);
+				S_DEBUGF("\n纬度:%o%o%o%o\n",TestNssInfo.Latitude[0],TestNssInfo.Latitude[1],TestNssInfo.Latitude[2],TestNssInfo.Latitude[3]);
+				S_DEBUGF("\n海拔:%o%o%o%o\n",TestNssInfo.Altitude[0],TestNssInfo.Altitude[1],TestNssInfo.Altitude[2],TestNssInfo.Altitude[3]);
+				S_DEBUGF("\n速度:%o%o%o\n",TestNssInfo.Speed[0],TestNssInfo.Speed[1],TestNssInfo.Speed[2]);
+				S_DEBUGF("\n方向:%o%o%o\n",TestNssInfo.Direction[0],TestNssInfo.Direction[1],TestNssInfo.Direction[2]);
+				//-S_DEBUGF("\n时间:%d-%d-%d %d:%d:%d\n",TestNssInfo.time.year,TestNssInfo.time.month,TestNssInfo.time.day,TestNssInfo.time.hour,TestNssInfo.time.minute,TestNssInfo.time.second);
+				break;
+			}
+			continue;
+		}
+		
+	}
+	S_DEBUGF("\n当前时间:");
+	//-PrintRtc();
+	DealDebugSend();
+	res = GetNssAntStatus();
+	if(res == 0)
+	{
+		S_DEBUGF("\n----GPS北斗天线无故障");
+	}
+	else if(res == 1)
+	{
+		S_DEBUGF("\n----GPS北斗天线断路");
+	}
+	else if(res == 2)
+	{
+		S_DEBUGF("\n----GPS北斗天线短路");
+	}
+	S_DEBUGF("\n-----断开GPS天线,输入OK\n");
+	DealDebugSend();
+//-	WaitInputOK();
+	res = GetNssAntStatus();
+	if(res == 0)
+	{
+		S_DEBUGF("\n----GPS北斗天线无故障");
+	}
+	else if(res == 1)
+	{
+		S_DEBUGF("\n----GPS北斗天线断路");
+	}
+	else if(res == 2)
+	{
+		S_DEBUGF("\n----GPS北斗天线短路");
+	}
+	S_DEBUGF("\nGPS北斗测试完成!\n");
+	DealDebugSend();
+#endif
+	
+#if 1
+	S_DEBUGF("\n测试省电模式");
+	res = GetExtPowerStatus();
+	if(res == 0)
+	{
+		S_DEBUGF("\n---外部电源没电\n");
+	}
+	else
+	{
+		S_DEBUGF("\n---外部电源有电\n");
+	}
+	S_DEBUGF("\n---断开外部电源,按OK\n");
+	DealDebugSend();
+	for(len=150000;len>0;len--);
+	//WaitInputOK();
+	res = GetExtPowerStatus();
+	if(res == 0)
+	{
+		S_DEBUGF("\n---外部电源没电\n");
+	}
+	else
+	{
+		S_DEBUGF("\n---外部电源有电\n");
+	}
+	DealDebugSend();
+	S_DEBUGF("\n---断开外设电源.\n");
+	ClearWatchdog();
+	
+	ClearWatchdog();
+	len = 0;
+	RtcInit();
+	while(1)
+	{
+		
+		//-memset(TestData,0x7E,10);
+		//-CanSendMessage(1,0x18DA00F9,EXPAND_CAN,TestData,8);
+		S_DEBUGF("\n---进入休眠\n");
+		DealDebugSend();
+		
+		ClearWatchdog();
+		RtcSetAlarm(1);
+		SystemPowerDown();
+		CpuPowerDown();
+		//IoInit();
+		RS232ClosePort();
+		RS232OpenPort(115200);
+		ClearWatchdog();
+		//RS232Init();
+		//RtcInit();
+		//PrintRtc();
+		S_DEBUGF("\n---休眠唤醒\n");
+		DealDebugSend();
+		ClearWatchdog();
+		AdcInit();
+		res = BattCoulometry();
+		printf("\r\nBattCoulometry = %d\n", res);
+		if(len > 30)
+		{
+			SystemWakeup();
+			break;;
+		}
+		len ++;
+	}
+	
+	
+
+	
+#endif	
+	
+#if 1
+	AdcInit();
+	res = BattCoulometry();
+	printf("\r\nBattCoulometry = %d\n", res);
+	
 #endif
 
 	while(1)
